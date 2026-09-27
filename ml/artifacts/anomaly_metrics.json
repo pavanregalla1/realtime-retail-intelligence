@@ -1,0 +1,6 @@
+{
+  "events": 80628,
+  "anomalies_flagged": 2433,
+  "fraud_recall": 1.0,
+  "glitch_recall": 1.0
+}

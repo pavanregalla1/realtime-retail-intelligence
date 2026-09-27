@@ -1,0 +1,15 @@
+# generated stream — reproducible via streaming/event_producer.py
+data/stream/
+# trained artifacts — reproducible via ml/train_*.py
+ml/artifacts/*.pkl
+# spark checkpoints / delta output
+spark/checkpoints/
+lake/
+
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+.DS_Store

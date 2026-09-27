@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: stg_events
+    columns:
+      - name: event_id
+        tests: [unique, not_null]
+      - name: event_time
+        tests: [not_null]
+      - name: quantity
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: unit_price
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: category
+        tests:
+          - accepted_values:
+              values: ['Electronics','Apparel','Home & Kitchen','Beauty',
+                       'Sports','Books','Toys','Grocery']
+  - name: fct_orders
+    columns:
+      - name: event_id
+        tests: [unique, not_null]
+      - name: line_total
+        tests: [not_null]

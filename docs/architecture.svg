@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#0b1026"/><stop offset="1" stop-color="#131a3a"/>
+  </linearGradient>
+  <linearGradient id="box" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#1d2650"/><stop offset="1" stop-color="#161d40"/>
+  </linearGradient>
+  <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#a78bfa"/>
+  </linearGradient>
+  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="6" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#38bdf8"/>
+  </marker>
+</defs>
+<rect width="1280" height="720" fill="url(#bg)"/>
+<text x="640" y="52" text-anchor="middle" fill="#f1f5f9" font-family="Arial,Helvetica,sans-serif" font-size="30" font-weight="bold">Real-Time Retail Intelligence Platform</text>
+<text x="640" y="80" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="15">streaming medallion pipeline &#183; ML anomaly detection &#183; revenue forecasting &#183; live BI</text>
+
+<g filter="url(#glow)">
+<rect x="40" y="140" width="200" height="110" rx="14" fill="url(#box)" stroke="#38bdf8" stroke-width="2"/>
+</g>
+<text x="140.0" y="170" text-anchor="middle" fill="#f8fafc" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold">Order Events</text>
+<text x="140.0" y="196" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">web / app / POS</text>
+<text x="140.0" y="216" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">~240 events/min</text>
+<g filter="url(#glow)">
+<rect x="300" y="140" width="220" height="110" rx="14" fill="url(#box)" stroke="#f472b6" stroke-width="2"/>
+</g>
+<text x="410.0" y="170" text-anchor="middle" fill="#f8fafc" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold">Apache Kafka</text>
+<text x="410.0" y="196" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">topic: retail.events</text>
+<text x="410.0" y="216" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">3 partitions · 7-day retention</text>
+<g filter="url(#glow)">
+<rect x="580" y="140" width="280" height="110" rx="14" fill="url(#box)" stroke="#a78bfa" stroke-width="2"/>
+</g>
+<text x="720.0" y="170" text-anchor="middle" fill="#f8fafc" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold">Spark Structured Streaming</text>
+<text x="720.0" y="196" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">bronze → silver → gold</text>
+<text x="720.0" y="216" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">watermark 10 min · exactly-once</text>
+<g filter="url(#glow)">
+<rect x="920" y="120" width="320" height="70" rx="14" fill="url(#box)" stroke="#34d399" stroke-width="2"/>
+</g>
+<text x="1080.0" y="150" text-anchor="middle" fill="#f8fafc" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold">Delta Lake: silver.events_clean</text>
+<text x="1080.0" y="176" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">append · deduped on event_id</text>
+<g filter="url(#glow)">
+<rect x="920" y="210" width="320" height="70" rx="14" fill="url(#box)" stroke="#34d399" stroke-width="2"/>
+</g>
+<text x="1080.0" y="240" text-anchor="middle" fill="#f8fafc" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold">Delta Lake: gold.hourly_revenue</text>
+<text x="1080.0" y="266" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">complete mode · 1-hour windows</text>
+<g filter="url(#glow)">
+<rect x="920" y="300" width="320" height="70" rx="14" fill="url(#box)" stroke="#fbbf24" stroke-width="2"/>
+</g>
+<text x="1080.0" y="330" text-anchor="middle" fill="#f8fafc" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold">Kafka: retail.alerts</text>
+<text x="1080.0" y="356" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">FRAUD_VELOCITY · PRICE_GLITCH</text>
+<g filter="url(#glow)">
+<rect x="580" y="330" width="280" height="110" rx="14" fill="url(#box)" stroke="#fb7185" stroke-width="2"/>
+</g>
+<text x="720.0" y="360" text-anchor="middle" fill="#f8fafc" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold">ML Sidecar (every 5 min)</text>
+<text x="720.0" y="386" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">IsolationForest anomaly detection</text>
+<text x="720.0" y="406" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">GradientBoosting revenue forecast</text>
+<g filter="url(#glow)">
+<rect x="120" y="500" width="260" height="110" rx="14" fill="url(#box)" stroke="#38bdf8" stroke-width="2"/>
+</g>
+<text x="250.0" y="530" text-anchor="middle" fill="#f8fafc" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold">Power BI Dashboard</text>
+<text x="250.0" y="556" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">DirectQuery · 5-min auto-refresh</text>
+<text x="250.0" y="576" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">live pulse · anomaly center · forecast</text>
+<g filter="url(#glow)">
+<rect x="450" y="500" width="260" height="110" rx="14" fill="url(#box)" stroke="#f472b6" stroke-width="2"/>
+</g>
+<text x="580.0" y="530" text-anchor="middle" fill="#f8fafc" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold">dbt Marts</text>
+<text x="580.0" y="556" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">fct_orders (incremental)</text>
+<text x="580.0" y="576" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">agg_hourly_revenue · tests</text>
+<g filter="url(#glow)">
+<rect x="780" y="500" width="260" height="110" rx="14" fill="url(#box)" stroke="#fbbf24" stroke-width="2"/>
+</g>
+<text x="910.0" y="530" text-anchor="middle" fill="#f8fafc" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold">Alerting</text>
+<text x="910.0" y="556" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">Teams + email via</text>
+<text x="910.0" y="576" text-anchor="middle" fill="#94a3b8" font-family="Arial,Helvetica,sans-serif" font-size="13">Power Automate &lt; 1 min</text>
+<line x1="240" y1="195" x2="300" y2="195" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line x1="520" y1="195" x2="580" y2="195" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line x1="860" y1="170" x2="920" y2="155" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line x1="860" y1="195" x2="920" y2="245" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line x1="860" y1="220" x2="920" y2="335" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line x1="720" y1="250" x2="720" y2="330" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line x1="1080" y1="370" x2="1080" y2="470" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line x1="1080" y1="470" x2="910" y2="555" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line x1="720" y1="440" x2="720" y2="500" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line x1="580" y1="555" x2="450" y2="555" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line x1="240" y1="555" x2="380" y2="555" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+<rect x="40" y="650" width="1200" height="2" fill="url(#accent)"/>
+<text x="640" y="690" text-anchor="middle" fill="#64748b" font-family="Arial,Helvetica,sans-serif" font-size="13">80,628 events · 7 days · fraud burst caught at 100% recall · forecast 83% better than naive · built end-to-end by Pavan Kumar R</text>
+</svg>
