@@ -15,6 +15,9 @@ all transforms are source-agnostic. The kafka source needs the Kafka package
 for Spark — match its Spark/Scala version to your pyspark, e.g.:
   spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.13:4.2.0 \\
       spark/streaming_job.py --source kafka
+Use --starting-offsets earliest when the topic was populated before the job
+started (run.sh's Kafka mode does this); the default 'latest' suits a
+continuously-fed topic.
 
 Env:
   ALERTS_SINK=kafka   publish velocity alerts to the retail.alerts Kafka topic
@@ -48,7 +51,8 @@ EVENT_SCHEMA = T.StructType([
 VALID_CATEGORIES = ["Electronics", "Furniture", "Clothing", "Grocery"]
 
 
-def build_pipeline(spark: SparkSession, source: str, path: str, trigger_files: int = 0):
+def build_pipeline(spark: SparkSession, source: str, path: str, trigger_files: int = 0,
+                   starting_offsets: str = "latest"):
     if source == "file":                       # local replay of data/stream/
         reader = spark.readStream.schema(EVENT_SCHEMA)
         if trigger_files and trigger_files > 0:
@@ -59,7 +63,7 @@ def build_pipeline(spark: SparkSession, source: str, path: str, trigger_files: i
                .option("kafka.bootstrap.servers",
                        os.environ.get("KAFKA_BROKERS", "kafka:9092"))
                .option("subscribe", "retail.events")
-               .option("startingOffsets", "latest").load()
+               .option("startingOffsets", starting_offsets).load()
                .select(F.from_json(F.col("value").cast("string"),
                                    EVENT_SCHEMA).alias("e")).select("e.*"))
 
@@ -107,6 +111,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", default="file", choices=["file", "kafka", "rate"])
     ap.add_argument("--path", default="data/stream/")
+    ap.add_argument("--starting-offsets", default="latest", choices=["earliest", "latest"],
+                    help="Kafka starting offsets. Use 'earliest' when the topic was"
+                         " populated before the job started (e.g. run.sh's Kafka mode);"
+                         " 'latest' is the safe default for a continuously-fed topic.")
     ap.add_argument("--checkpoint", default="spark/checkpoints/")
     ap.add_argument("--sink-format", default="delta",
                     help="sink for silver/gold tables: delta (prod) or parquet (smoke tests)")
@@ -133,7 +141,8 @@ def main():
         q.awaitTermination(15); q.stop(); return
 
     silver, hourly_revenue, alerts = build_pipeline(spark, args.source, args.path,
-                                                     args.trigger_files)
+                                                     args.trigger_files,
+                                                     args.starting_offsets)
 
     alerts_sink = os.environ.get("ALERTS_SINK", "console")  # console | kafka
     if alerts_sink == "kafka":

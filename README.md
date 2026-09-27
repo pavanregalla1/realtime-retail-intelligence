@@ -5,18 +5,20 @@
 ![architecture](docs/architecture.svg)
 
 ## What it does
-Ingests a live stream of retail order events (~240/min at peak) through Kafka into a
-Spark Structured Streaming medallion pipeline, scores every micro-batch with ML models,
-and serves a real-time Power BI dashboard with sub-minute fraud alerting.
+Ingests a stream of retail order events (~80,000 over 7 days — about 8/min on
+average, spiking ~10× during flash sales) through Kafka into a Spark
+Structured Streaming medallion pipeline, scores the stream with ML models for
+fraud and price anomalies, and provides a Power BI dashboard design and build
+guide — with inline fraud alerting.
 
 ## Proven results (everything below actually runs in this repo)
 | Metric | Result |
 |---|---|
 | Events processed | **80,628** across 336 micro-batches (7 days) |
 | Fraud burst (40 orders / 20 min, one customer) | **caught — 100% recall on injected fraud scenarios** |
-| Price glitch ($999 TV sold at $0.01, 120 orders) | **caught — 100% recall on injected fraud scenarios** |
+| Price glitch (Electronics product sold at $0.01, 120 orders) | **caught — 100% recall on injected fraud scenarios** |
 | Overall alert rate | 3.02% of stream flagged |
-| Revenue forecast backtest (last 24h) | **83.4% better than naive baseline** (MAE $20,604 vs $123,755 — [method](docs/forecast_method.md)) |
+| Revenue forecast backtest (last 24h) | **83.4% lower MAE than a naïve baseline on a synthetic 24-hour backtest** (MAE $20,604 vs $123,755 — [method](docs/forecast_method.md)) |
 | dbt models + tests | **12/12 PASS** — 3 models (view, incremental, table) + 9 data tests |
 
 ## Evidence (rendered from real runs)
@@ -48,9 +50,11 @@ Real `dbt build` output — models plus all schema tests on DuckDB:
 `order events → Kafka → Spark Structured Streaming (bronze→silver→gold, watermark 10 min, exactly-once) → Delta Lake + alerts topic → Power BI / dbt / ML sidecar`
 
 Key design decisions (the part interviewers probe):
-- **ML as a sidecar, not inline** — the streaming job stays under 2s latency; models
-  score micro-batches every 5 min and write flags back to gold. Deterministic
-  velocity guardrails run *inline* for sub-minute fraud alerts.
+- **ML as a sidecar, not inline** — the streaming job runs only deterministic
+  transforms plus the velocity guardrail; the IsolationForest/GradientBoosting
+  models train and score in batch (`ml/`), writing per-event flags to
+  `anomaly_scores.csv`. Deterministic velocity guardrails run *inline* in the
+  streaming job for near-real-time fraud alerts.
 - **Three-detector anomaly system** — customer-window IsolationForest (collective
   fraud), product-window IsolationForest (price glitches), event-level model
   (point anomalies), plus a business-rule guardrail. Any detector firing = alert.
@@ -59,11 +63,24 @@ Key design decisions (the part interviewers probe):
 
 ## Run it
 ```bash
-./run.sh                 # full pipeline: Kafka -> producer -> Spark -> ML -> dbt
-./run.sh --no-docker     # same, without Kafka (file replay + console alerts)
+./run.sh                 # genuine path: Kafka -> producer -> Spark (Kafka source, Delta) -> ML -> dbt (needs Docker)
+./run.sh --no-docker     # verified fallback: file replay + console alerts (this is what CI runs)
 ./run.sh --days 2        # quick 2-day stream
 ./run.sh --help          # all flags
 ```
+### Run modes
+- **Verified path (CI-tested): file replay.** `./run.sh --no-docker` generates
+  the stream as micro-batch files and Spark replays them as the source. This
+  exercises the exact same transforms as the Kafka path and is what GitHub
+  Actions runs on every push.
+- **Production Kafka path (automated in `run.sh`, requires Docker; not
+  executed in this environment).** With Docker available, `run.sh` starts
+  Kafka, publishes every event to the `retail.events` topic
+  (`STREAM_BACKEND=both` also keeps the files for ML/dbt), then runs Spark
+  with `--source kafka --starting-offsets earliest`, Delta Lake sinks, and
+  alerts to the `retail.alerts` topic. The topology is code-reviewed and
+  documented in [docs/runbook.md](docs/runbook.md), but it has not been
+  executed here (no Docker daemon).
 Step-by-step commands for each stage: [docs/runbook.md](docs/runbook.md).
 
 ## Power BI dashboard
@@ -107,10 +124,11 @@ docs/interview_talk_track.md  # 5-minute walkthrough script
   100% recall; the forecaster beats the naive-mean baseline by 83.4% MAE on a
   24h backtest; dbt builds all marts and its schema tests pass.
 - **Limits:** single-machine runs; CI exercises the file-replay path (no Kafka
-  on the runner — the Kafka topology is documented in `docs/runbook.md` and
-  `docker-compose.yml`); the Spark demo writes Parquet locally while production
-  uses Delta Lake; the naive baseline is deliberately weak, so "83% better"
-  shows the model captures seasonality, not production accuracy.
+  on the runner — the Kafka topology is automated in `run.sh` and documented
+  in `docs/runbook.md` / `docker-compose.yml`, but has not been executed in
+  this environment); the local Spark run writes Parquet while the Kafka path
+  uses Delta Lake; the naive baseline is deliberately weak, so "83.4% lower
+  MAE" shows the model captures seasonality, not production accuracy.
 
 ## Tech
 Python · Apache Kafka · Spark Structured Streaming · Delta Lake · dbt (DuckDB) ·

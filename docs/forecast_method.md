@@ -1,4 +1,4 @@
-# Forecast method — how the "83% better" number is produced
+# Forecast method — how the "83.4% lower MAE" number is produced
 
 Script: `ml/train_forecast.py`. All numbers below are from a real run on the
 7-day stream (2026-09-26); the script prints them and stores them in
@@ -39,10 +39,11 @@ these numbers.
 ```
 improvement = 1 − (model_MAE / naive_MAE)
             = 1 − (20,604 / 123,755)
-            = 0.834  →  83.4% better than the naive baseline
+            = 0.834  →  83.4% lower MAE than the naive baseline on a synthetic
+                   24-hour backtest
 ```
 
 The naive baseline is deliberately weak (a flat mean cannot follow the
-evening demand peak or the day-3 flash sale), so "83% better" means the model
+evening demand peak or the day-3 flash sale), so "83.4% lower MAE" means the model
 captures the real daily seasonality — it is a sanity signal, not a claim of
 production accuracy. See the README's *Results and Limitations* section.

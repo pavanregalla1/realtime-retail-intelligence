@@ -71,7 +71,7 @@ Rename Page 3 to `Forecast`. Add:
 Backtest MAE = AVERAGEX ( forecast, ABS ( forecast[actual_revenue] - forecast[predicted_revenue] ) )
 ```
 
-3. **Text box** → `Model: GradientBoostingRegressor, 83.4% better than naive-mean baseline (see docs/forecast_method.md).`
+3. **Text box** → `Model: GradientBoostingRegressor, 83.4% lower MAE than naive-mean baseline on a synthetic 24h backtest (see docs/forecast_method.md).`
 
 ## 5. Save
 

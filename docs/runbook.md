@@ -57,6 +57,15 @@ STREAM_BACKEND=kafka KAFKA_BROKERS=localhost:9092 KAFKA_TOPIC=retail.events \
   python streaming/event_producer.py
 ```
 
+Dual mode (what `run.sh`'s genuine Kafka path uses — one pass writes the
+micro-batch files *and* publishes to Kafka, so ML/dbt keep working on files
+while Spark consumes the topic):
+
+```bash
+STREAM_BACKEND=both KAFKA_BROKERS=localhost:9092 KAFKA_TOPIC=retail.events \
+  python streaming/event_producer.py
+```
+
 Watch events arrive:
 
 ```bash
@@ -84,22 +93,30 @@ Smoke test without data:
 python spark/streaming_job.py --source rate
 ```
 
-Full Kafka source + Kafka alert sink (production topology; needs the Kafka
-package for Spark — bump the Scala/version to match your pyspark):
+Full Kafka source + Kafka alert sink + Delta Lake (production topology; needs
+the Kafka and Delta packages for Spark — `run.sh` auto-detects the coordinates
+from your pyspark version, or set `SPARK_PACKAGES` explicitly):
 
 ```bash
 export KAFKA_BROKERS=localhost:9092
 export ALERTS_SINK=kafka
-spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.13:4.2.0 \
-  spark/streaming_job.py --source kafka --timeout 600
+export SPARK_PACKAGES="org.apache.spark:spark-sql-kafka-0-10_2.13:4.2.0,io.delta:delta-spark_2.13:4.0.0"
+spark-submit --packages "$SPARK_PACKAGES" \
+  --conf spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension \
+  --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog \
+  spark/streaming_job.py --source kafka --starting-offsets earliest \
+  --sink-format delta --timeout 600 --checkpoint spark/checkpoints-kafka/
 ```
-(match the package's Spark/Scala version to your installed pyspark)
+(match the package versions to your installed pyspark: Spark 4.x → Scala 2.13
+jars; Spark 3.5 → Scala 2.12 jars with `delta-spark_2.12:3.2.1`. `--starting-offsets
+earliest` is required when the topic was populated before the job started;
+`latest` is the safe default for a continuously-fed topic.)
 
 What the job does: bronze (raw + ingest timestamp) → silver (watermarked
-10 min, deduped on `event_id`, quarantined bad rows) → gold hourly revenue
-(complete mode) + velocity alerts (30-min customer windows with ≥10 orders).
-Checkpoints under `spark/checkpoints/` give exactly-once across restarts —
-see `docs/exactly_once.md`.
+10 min, deduped on `event_id`, invalid rows dropped) → gold hourly revenue
+(complete mode on Delta) + velocity alerts (30-min customer windows with ≥10 orders).
+Checkpoints under `spark/checkpoints/` (file mode) or `spark/checkpoints-kafka/`
+(Kafka mode) give exactly-once across restarts — see `docs/exactly_once.md`.
 
 ## 4. Train the ML models
 

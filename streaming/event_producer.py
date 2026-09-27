@@ -14,10 +14,13 @@ all three incidents.
 Env:
   DAYS         number of days to generate (default 7)
   STREAM_DIR   output directory (default data/stream)
-  STREAM_BACKEND local | kafka | kinesis (default local)
+  STREAM_BACKEND local | kafka | both | kinesis (default local)
 
 PRODUCTION PATH: set STREAM_BACKEND=kafka|kinesis and the same events go to
 Kafka topic / Kinesis stream via the producers below (credentials via env).
+STREAM_BACKEND=both writes the micro-batch files AND publishes to Kafka in a
+single pass (run.sh's genuine Kafka mode: files feed ML/dbt, the topic feeds
+Spark Structured Streaming).
 """
 import json, os, random, uuid
 from datetime import datetime, timedelta
@@ -59,20 +62,40 @@ def make_event(ts, customer_id=None, product=None, price_override=None):
     }
 
 
-def send_batch(out_dir, backend, batch_id, events):
-    """Local backend: one JSON-lines file per micro-batch (the 'stream')."""
-    if backend == "local":
+def _kafka_producer():
+    """One shared KafkaProducer for the whole run (creating one per batch
+    would re-do connection setup 336 times). Requires kafka-python."""
+    try:
+        from kafka import KafkaProducer  # pip install kafka-python
+    except ImportError as e:
+        raise SystemExit(
+            "kafka-python is not installed — required for STREAM_BACKEND=kafka|both.\n"
+            "Install it with: pip install kafka-python"
+        ) from e
+    return KafkaProducer(bootstrap_servers=os.environ["KAFKA_BROKERS"],
+                         value_serializer=lambda v: json.dumps(v).encode(),
+                         linger_ms=50, batch_size=65536)
+
+
+def send_batch(out_dir, backend, batch_id, events, producer=None):
+    """Local backend: one JSON-lines file per micro-batch (the 'stream').
+    Kafka backend: every event to the KAFKA_TOPIC topic.
+    Both backend: file AND Kafka in a single pass (used by run.sh's genuine
+    Kafka mode — the files feed ML/dbt, the topic feeds Spark)."""
+    if backend in ("local", "both"):
         with open(f"{out_dir}/batch_{batch_id:04d}.jsonl", "w") as f:
             for e in events:
                 f.write(json.dumps(e) + "\n")
-    elif backend == "kafka":
-        from kafka import KafkaProducer  # pip install kafka-python
-        p = KafkaProducer(bootstrap_servers=os.environ["KAFKA_BROKERS"],
-                          value_serializer=lambda v: json.dumps(v).encode())
+    if backend in ("kafka", "both"):
+        p = producer or _kafka_producer()
+        topic = os.environ.get("KAFKA_TOPIC", "retail.events")
         for e in events:
-            p.send(os.environ.get("KAFKA_TOPIC", "retail.events"), e)
-        p.flush()
-    elif backend == "kinesis":
+            p.send(topic, e)
+        if producer is None:
+            # one-shot producer created above: flush now, don't leak it
+            p.flush()
+            p.close()
+    if backend == "kinesis":
         import boto3  # AWS creds via env / IAM role
         k = boto3.client("kinesis", region_name=os.environ.get("AWS_REGION", "us-east-1"))
         for e in events:
@@ -83,8 +106,12 @@ def send_batch(out_dir, backend, batch_id, events):
 def main(days=None, out_dir=None, backend=None):
     days = int(days if days is not None else os.environ.get("DAYS", 7))
     out_dir = out_dir or os.environ.get("STREAM_DIR", "data/stream")
-    backend = backend or os.environ.get("STREAM_BACKEND", "local")  # local | kafka | kinesis
+    backend = backend or os.environ.get("STREAM_BACKEND", "local")  # local | kafka | both | kinesis
     os.makedirs(out_dir, exist_ok=True)
+
+    # one shared Kafka producer for backends that publish (created lazily so
+    # the local backend never imports kafka-python)
+    producer = _kafka_producer() if backend in ("kafka", "both") else None
 
     # injection days, pulled forward when generating a short stream
     sale_day  = min(2, days - 1)
@@ -115,8 +142,12 @@ def main(days=None, out_dir=None, backend=None):
                 events += [make_event(ts + timedelta(seconds=random.randint(0, 1799)),
                                       product=(GLITCH_PID, "Electronics", ""),
                                       price_override=0.01) for _ in range(120)]
-            send_batch(out_dir, backend, batch, events)
+            send_batch(out_dir, backend, batch, events, producer)
             batch += 1; total += len(events)
+
+    if producer is not None:
+        producer.flush()
+        producer.close()
 
     print(f"batches={batch} events={total} days={days} backend={backend} out={out_dir}")
     return {"batches": batch, "events": total, "days": days}

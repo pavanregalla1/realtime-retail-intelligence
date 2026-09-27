@@ -6,11 +6,13 @@ guarantees from the same code path.)
 
 ## 1. Kafka offset management via Spark checkpoints
 
-The Kafka source is created with `.option("startingOffsets", "latest")` and a
-`checkpointLocation` per query (`spark/checkpoints/<query>`). Spark's Kafka
-source commits offsets to the checkpoint **only after the micro-batch's sink
-write succeeds**. On restart the query resumes from the last committed
-offset — no replay of already-written batches, no skipped batches.
+The Kafka source is created with `.option("startingOffsets", ...)` (default
+`latest`; `--starting-offsets earliest` when the topic was populated before
+the job started, e.g. `run.sh`'s Kafka mode) and a `checkpointLocation` per
+query (`spark/checkpoints/<query>` for file replay, `spark/checkpoints-kafka/<query>`
+for the Kafka path). Spark's Kafka source commits offsets to the checkpoint
+**only after the micro-batch's sink write succeeds**. On restart the query resumes
+from the last committed offset — no replay of already-written batches, no skipped batches.
 
 To reprocess history deliberately (backfill), delete the checkpoint directory
 and set `startingOffsets` to `earliest`.
@@ -43,10 +45,11 @@ exactly-once rather than at-least-once (see below).
 ## 4. Replay semantics
 
 `startingOffsets=earliest` + a fresh checkpoint reproduces the full history
-deterministically: the transforms are pure functions of the ordered event log,
-watermarks are event-time based (not wall-clock), and the ML sidecar scores
-immutable micro-batches. Deleting `spark/checkpoints/` and `lake/` and
-re-running yields byte-identical silver/gold tables.
+deterministically: the transforms are pure functions of the ordered event log
+and watermarks are event-time based (not wall-clock). Deleting
+`spark/checkpoints/` and `lake/` and re-running on the same input files
+reproduces identical row counts and aggregates — note `ingest_ts` is
+`current_timestamp()`, so it (and only it) differs between runs.
 
 ## 5. What exactly-once does NOT cover here
 
