@@ -47,7 +47,7 @@ Real `dbt build` output — models plus all schema tests on DuckDB:
 ![dbt build](docs/images/dbt_tests.png)
 
 ## Architecture
-`order events → Kafka → Spark Structured Streaming (bronze→silver→gold, watermark 10 min, exactly-once) → Delta Lake + alerts topic → Power BI / dbt / ML sidecar`
+`order events → Kafka → Spark Structured Streaming (bronze→silver→gold, watermark 10 min, checkpointing and deduplication design for exactly-once processing) → Delta Lake + alerts topic → Power BI / dbt / ML sidecar`
 
 ## Design decisions
 - The ML models don't run inside the streaming job. Streaming only does
@@ -60,8 +60,9 @@ Real `dbt build` output — models plus all schema tests on DuckDB:
   glitches, and one scoring individual weird events. If any of them fires, it
   alerts.
 - Watermarking (10 min) plus checkpointing means late events from mobile retries
-  still land in the right window, and exactly-once holds across redeploys via
-  Kafka replay. Details: [docs/exactly_once.md](docs/exactly_once.md).
+  still land in the right window, with a checkpointing and deduplication design
+  for exactly-once processing across redeploys via Kafka replay.
+  Details: [docs/exactly_once.md](docs/exactly_once.md).
 
 ## Run it
 ```bash
