@@ -50,16 +50,18 @@ Real `dbt build` output — models plus all schema tests on DuckDB:
 `order events → Kafka → Spark Structured Streaming (bronze→silver→gold, watermark 10 min, exactly-once) → Delta Lake + alerts topic → Power BI / dbt / ML sidecar`
 
 ## Design decisions
-- **ML as a sidecar, not inline** — the streaming job runs only deterministic
-  transforms plus the velocity guardrail; the IsolationForest/GradientBoosting
-  models train and score in batch (`ml/`), writing per-event flags to
-  `anomaly_scores.csv`. Deterministic velocity guardrails run *inline* in the
-  streaming job for near-real-time fraud alerts.
-- **Three-detector anomaly system** — customer-window IsolationForest (collective
-  fraud), product-window IsolationForest (price glitches), event-level model
-  (point anomalies), plus a business-rule guardrail. Any detector firing = alert.
-- **Watermarking + checkpointing** — late mobile-retries land in the right window;
-  exactly-once survives redeploys via Kafka replay. Details: [docs/exactly_once.md](docs/exactly_once.md).
+- The ML models don't run inside the streaming job. Streaming only does
+  deterministic transforms plus a simple velocity guardrail, which is what gives
+  the near-real-time fraud alerts. The IsolationForest/GradientBoosting models
+  train and score in batch under `ml/` and write per-event flags to
+  `anomaly_scores.csv`.
+- There are three anomaly detectors plus a rule-based guardrail: one watching
+  customer windows for collective fraud, one watching product windows for price
+  glitches, and one scoring individual weird events. If any of them fires, it
+  alerts.
+- Watermarking (10 min) plus checkpointing means late events from mobile retries
+  still land in the right window, and exactly-once holds across redeploys via
+  Kafka replay. Details: [docs/exactly_once.md](docs/exactly_once.md).
 
 ## Run it
 ```bash
