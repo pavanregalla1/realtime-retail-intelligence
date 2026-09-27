@@ -49,7 +49,7 @@ Real `dbt build` output — models plus all schema tests on DuckDB:
 ## Architecture
 `order events → Kafka → Spark Structured Streaming (bronze→silver→gold, watermark 10 min, exactly-once) → Delta Lake + alerts topic → Power BI / dbt / ML sidecar`
 
-Key design decisions (the part interviewers probe):
+## Design decisions
 - **ML as a sidecar, not inline** — the streaming job runs only deterministic
   transforms plus the velocity guardrail; the IsolationForest/GradientBoosting
   models train and score in batch (`ml/`), writing per-event flags to
