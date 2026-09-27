@@ -1,0 +1,49 @@
+01:42:54  Running with dbt=1.12.5
+01:42:55  Registered adapter: duckdb=1.11.0
+01:42:55  Unable to do partial parsing because saved manifest not found. Starting full parse.
+01:42:57  [WARNING][MissingArgumentsPropertyInGenericTestDeprecation]: Deprecated
+functionality
+Found top-level arguments to test `dbt_utils.expression_is_true` defined on
+'stg_events' in package 'retail_intelligence' (models/schema.yml). Arguments to
+generic tests should be nested under the `arguments` property.
+01:42:58  Found 3 models, 9 data tests, 2 sources, 616 macros
+01:42:58  
+01:42:58  Concurrency: 4 threads (target='dev')
+01:42:58  
+01:42:58  1 of 12 START sql view model main.stg_events ................................... [RUN]
+01:42:58  1 of 12 OK created sql view model main.stg_events .............................. [OK in 0.12s]
+01:42:58  2 of 12 START test accepted_values_stg_events_category__Electronics__Furniture__Clothing__Grocery  [RUN]
+01:42:58  3 of 12 START test dbt_utils_expression_is_true_stg_events_quantity___0 ........ [RUN]
+01:42:58  4 of 12 START test dbt_utils_expression_is_true_stg_events_unit_price___0 ...... [RUN]
+01:42:58  5 of 12 START test not_null_stg_events_event_id ................................ [RUN]
+01:42:58  3 of 12 PASS dbt_utils_expression_is_true_stg_events_quantity___0 .............. [PASS in 0.11s]
+01:42:58  5 of 12 PASS not_null_stg_events_event_id ...................................... [PASS in 0.12s]
+01:42:58  2 of 12 PASS accepted_values_stg_events_category__Electronics__Furniture__Clothing__Grocery  [PASS in 0.13s]
+01:42:58  4 of 12 PASS dbt_utils_expression_is_true_stg_events_unit_price___0 ............ [PASS in 0.13s]
+01:42:58  6 of 12 START test not_null_stg_events_event_time .............................. [RUN]
+01:42:58  7 of 12 START test unique_stg_events_event_id .................................. [RUN]
+01:42:58  6 of 12 PASS not_null_stg_events_event_time .................................... [PASS in 0.05s]
+01:42:59  7 of 12 PASS unique_stg_events_event_id ........................................ [PASS in 0.07s]
+01:42:59  8 of 12 START sql incremental model main.fct_orders ............................ [RUN]
+01:42:59  8 of 12 OK created sql incremental model main.fct_orders ....................... [OK in 0.48s]
+01:42:59  9 of 12 START test not_null_fct_orders_event_id ................................ [RUN]
+01:42:59  10 of 12 START test not_null_fct_orders_line_total ............................. [RUN]
+01:42:59  11 of 12 START test unique_fct_orders_event_id ................................. [RUN]
+01:42:59  10 of 12 PASS not_null_fct_orders_line_total ................................... [PASS in 0.07s]
+01:42:59  9 of 12 PASS not_null_fct_orders_event_id ...................................... [PASS in 0.08s]
+01:42:59  11 of 12 PASS unique_fct_orders_event_id ....................................... [PASS in 0.08s]
+01:42:59  12 of 12 START sql table model main.agg_hourly_revenue ......................... [RUN]
+01:42:59  12 of 12 OK created sql table model main.agg_hourly_revenue .................... [OK in 0.10s]
+01:42:59  
+01:42:59  Finished running 1 incremental model, 1 table model, 9 data tests, 1 view model in 0 hours 0 minutes and 1.38 seconds (1.38s).
+01:42:59  
+01:42:59  Completed successfully
+01:42:59  
+01:42:59  Done. PASS=12 WARN=0 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=12
+01:42:59  [WARNING][DeprecationsSummary]: Deprecated functionality
+Summary of encountered deprecations:
+- MissingArgumentsPropertyInGenericTestDeprecation: 3 occurrences
+To see all deprecation instances instead of just the first occurrence of each,
+run command again with the `--show-all-deprecations` flag. You may also need to
+run with `--no-partial-parse` as some deprecations are only encountered during
+parsing.

@@ -13,11 +13,36 @@ and serves a real-time Power BI dashboard with sub-minute fraud alerting.
 | Metric | Result |
 |---|---|
 | Events processed | **80,628** across 336 micro-batches (7 days) |
-| Fraud burst (40 orders / 20 min, one customer) | **caught — 100% recall** |
-| Price glitch ($999 TV sold at $0.01, 120 orders) | **caught — 100% recall** |
-| False-positive rate | 3.0% of stream flagged |
-| Revenue forecast backtest (last 24h) | **83% better than naive baseline** |
-| Data-quality checks | 10/10 passing |
+| Fraud burst (40 orders / 20 min, one customer) | **caught — 100% recall on injected fraud scenarios** |
+| Price glitch ($999 TV sold at $0.01, 120 orders) | **caught — 100% recall on injected fraud scenarios** |
+| Overall alert rate | 3.02% of stream flagged |
+| Revenue forecast backtest (last 24h) | **83.4% better than naive baseline** (MAE $20,604 vs $123,755 — [method](docs/forecast_method.md)) |
+| dbt models + tests | **12/12 PASS** — 3 models (view, incremental, table) + 9 data tests |
+
+## Evidence (rendered from real runs)
+Sample of the events the producer emits (identical payload goes to the Kafka
+`retail.events` topic in prod mode):
+
+![sample events](docs/images/kafka_events.png)
+
+Spark Structured Streaming micro-batches from a real file-replay run, and the
+per-batch processing latency:
+
+![spark micro-batches](docs/images/spark_batches.png)
+![micro-batch latency](docs/images/latency.png)
+
+Anomaly detection on the real 7-day stream — the injected fraud burst and price
+glitch, plus the top flagged events:
+
+![fraud alerts](docs/images/fraud_alerts.png)
+
+Revenue forecast backtest (last 24h, real model output):
+
+![forecast backtest](docs/images/forecast.png)
+
+Real `dbt build` output — models plus all schema tests on DuckDB:
+
+![dbt build](docs/images/dbt_tests.png)
 
 ## Architecture
 `order events → Kafka → Spark Structured Streaming (bronze→silver→gold, watermark 10 min, exactly-once) → Delta Lake + alerts topic → Power BI / dbt / ML sidecar`
@@ -30,29 +55,64 @@ Key design decisions (the part interviewers probe):
   fraud), product-window IsolationForest (price glitches), event-level model
   (point anomalies), plus a business-rule guardrail. Any detector firing = alert.
 - **Watermarking + checkpointing** — late mobile-retries land in the right window;
-  exactly-once survives redeploys via Kafka replay.
-
-## Repo map
-```
-streaming/event_producer.py   # realistic event generator (3 injected incidents)
-ml/train_anomaly.py           # 3-detector anomaly system → ml/artifacts/
-ml/train_forecast.py          # hourly revenue forecaster → ml/artifacts/
-spark/streaming_job.py        # Spark Structured Streaming (file replay or Kafka)
-dbt/models/                   # stg_events → fct_orders → agg_hourly_revenue (+ tests)
-powerbi/realtime_dashboard_spec.md  # 3-page dashboard: pulse, anomaly center, forecast
-infra/architecture.md         # scale notes, cost-conscious cloud alternative
-docs/interview_talk_track.md  # 5-minute walkthrough script
-```
+  exactly-once survives redeploys via Kafka replay. Details: [docs/exactly_once.md](docs/exactly_once.md).
 
 ## Run it
 ```bash
-pip install -r requirements.txt
-python streaming/event_producer.py   # generate the 7-day stream
-python ml/train_anomaly.py           # expect: fraud 100%, glitch 100%
-python ml/train_forecast.py          # expect: beats naive baseline
+./run.sh                 # full pipeline: Kafka -> producer -> Spark -> ML -> dbt
+./run.sh --no-docker     # same, without Kafka (file replay + console alerts)
+./run.sh --days 2        # quick 2-day stream
+./run.sh --help          # all flags
+```
+Step-by-step commands for each stage: [docs/runbook.md](docs/runbook.md).
+
+## Power BI dashboard
+Power BI Desktop is Windows-only, so the `.pbix` is built via
+[powerbi/BUILD_GUIDE.md](powerbi/BUILD_GUIDE.md) (click-by-click, ~10 min) from
+CSVs exported by `scripts/export_powerbi_csvs.py`. The dashboard visuals below
+are rendered from the same real data:
+
+![throughput](docs/images/dashboard_throughput.png)
+![anomaly center](docs/images/dashboard_anomalies.png)
+![forecast view](docs/images/dashboard_forecast.png)
+
+## Repo map
+```
+streaming/event_producer.py   # event generator (3 injected incidents); DAYS/STREAM_DIR env
+spark/streaming_job.py        # Spark Structured Streaming (file replay or Kafka)
+ml/train_anomaly.py           # 3-detector anomaly system → ml/artifacts/
+ml/train_forecast.py          # hourly revenue forecaster → ml/artifacts/
+dbt/                          # dbt project: stg_events → fct_orders → agg_hourly_revenue (+ tests)
+scripts/build_warehouse.py    # loads stream + anomaly scores into DuckDB for dbt
+scripts/export_powerbi_csvs.py# real CSV exports for Power BI Desktop
+docker-compose.yml            # single-node Kafka (KRaft) for local dev
+run.sh                        # end-to-end pipeline runner
+tests/test_integration.py     # integration tests (producer, ML, Spark, dbt)
+.github/workflows/ci.yml      # CI: pytest on every push/PR
+powerbi/BUILD_GUIDE.md        # click-by-click .pbix build instructions
+docs/runbook.md               # exact copy-paste commands per stage
+docs/exactly_once.md          # exactly-once semantics
+docs/forecast_method.md       # forecast method, formulas, real numbers
+docs/interview_talk_track.md  # 5-minute walkthrough script
 ```
 
+## Results and Limitations
+- **The event stream is synthetic.** All 80,628 events are generated by
+  `streaming/event_producer.py` (seeded RNG); the "fraud burst", "price glitch"
+  and "flash sale" are injected scenarios, not real incidents.
+- **Recall is measured on the injected scenarios only.** Normal events are not
+  all labeled, so a true false-positive rate cannot be computed — the honest
+  number is the **3.02% overall alert rate** (share of the stream flagged).
+- **Validated:** the three-detector system catches both injected scenarios at
+  100% recall; the forecaster beats the naive-mean baseline by 83.4% MAE on a
+  24h backtest; dbt builds all marts and its schema tests pass.
+- **Limits:** single-machine runs; CI exercises the file-replay path (no Kafka
+  on the runner — the Kafka topology is documented in `docs/runbook.md` and
+  `docker-compose.yml`); the Spark demo writes Parquet locally while production
+  uses Delta Lake; the naive baseline is deliberately weak, so "83% better"
+  shows the model captures seasonality, not production accuracy.
+
 ## Tech
-Python · Apache Kafka · Spark Structured Streaming · Delta Lake · dbt ·
-scikit-learn (IsolationForest, GradientBoosting) · Power BI (DirectQuery) ·
+Python · Apache Kafka · Spark Structured Streaming · Delta Lake · dbt (DuckDB) ·
+scikit-learn (IsolationForest, GradientBoosting) · Power BI ·
 SQL · Pandas

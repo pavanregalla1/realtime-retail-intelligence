@@ -1,7 +1,12 @@
 {
   "backtest_mae": 20603.78,
+  "backtest_rmse": 27844.38,
+  "backtest_mape": 0.0919,
   "naive_mae": 123755.43,
+  "naive_rmse": 157338.14,
+  "naive_mape": 1.1698,
   "improvement_pct": 83.4,
+  "backtest_hours": 24,
   "last_6h_actual": [
     426955.55,
     423369.11,

@@ -1,0 +1,17 @@
+name: retail_intelligence
+version: 1.0.0
+config-version: 2
+profile: retail_intelligence
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages", "logs"]
+
+models:
+  retail_intelligence:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

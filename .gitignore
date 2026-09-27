@@ -2,9 +2,21 @@
 data/stream/
 # trained artifacts — reproducible via ml/train_*.py
 ml/artifacts/*.pkl
-# spark checkpoints / delta output
+ml/artifacts/anomaly_scores.csv
+# local DuckDB warehouse — reproducible via scripts/build_warehouse.py
+warehouse/
+# spark checkpoints / delta output / run logs
 spark/checkpoints/
+spark/last_run.log
 lake/
+# dbt build outputs
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.user.yml
+# Power BI: data exports are generated, the .pbix is built on Windows
+powerbi/data/
+powerbi/*.pbix
 
 __pycache__/
 *.pyc

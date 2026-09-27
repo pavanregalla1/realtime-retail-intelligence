@@ -18,8 +18,7 @@ models:
       - name: category
         tests:
           - accepted_values:
-              values: ['Electronics','Apparel','Home & Kitchen','Beauty',
-                       'Sports','Books','Toys','Grocery']
+              values: ['Electronics','Furniture','Clothing','Grocery']
   - name: fct_orders
     columns:
       - name: event_id

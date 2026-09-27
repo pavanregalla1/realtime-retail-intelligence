@@ -1,0 +1,10 @@
+# dbt profile for local runs. Run from the dbt/ directory:
+#   (cd dbt && dbt build --profiles-dir .)
+# The DuckDB file is created by ../scripts/build_warehouse.py (run it first).
+retail_intelligence:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "../warehouse/retail.duckdb"
+      threads: 4

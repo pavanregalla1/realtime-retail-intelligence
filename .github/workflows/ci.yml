@@ -1,0 +1,34 @@
+# Integration tests: producer -> ML training -> Spark streaming -> dbt.
+# Runs on every push and pull request. Docker/Kafka steps are intentionally
+# excluded here (no Docker on the runner) — the file-replay path exercises
+# the same transforms; see docs/runbook.md for the Kafka topology.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Spark needs a JVM
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyspark pytest dbt-duckdb
+
+      - name: Run integration tests
+        run: python -m pytest tests/ -v

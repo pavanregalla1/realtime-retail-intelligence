@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: Raw order events loaded from the stream (see scripts/build_warehouse.py).
+    schema: bronze
+    tables:
+      - name: events_raw
+        description: One row per raw order event, as produced by streaming/event_producer.py.
+
+  - name: ml
+    description: ML layer outputs.
+    schema: ml
+    tables:
+      - name: anomaly_scores
+        description: Per-event anomaly flags from ml/train_anomaly.py.

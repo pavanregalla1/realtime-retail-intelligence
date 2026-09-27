@@ -21,5 +21,5 @@ from {{ source('bronze', 'events_raw') }}
 where quantity > 0
   and unit_price > 0
   and discount between 0 and 0.9
-  and category in ('Electronics','Apparel','Home & Kitchen','Beauty',
-                   'Sports','Books','Toys','Grocery')
+  -- must match the producer's real taxonomy (streaming/event_producer.py)
+  and category in ('Electronics','Furniture','Clothing','Grocery')
